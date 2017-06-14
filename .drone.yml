@@ -4,3 +4,4 @@ pipeline:
     commands:
       - ls
       - pwd
+      - export
