@@ -1,10 +1,12 @@
 pipeline:
   backend:
     image: ${OS_IMAGG}
+    environment:
+      - GOOS=linux
     commands:
-      - cat /etc/*rel*
       - ls -la
       - pwd
+      - env
       - export
 
 matrix:
