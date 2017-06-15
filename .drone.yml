@@ -1,7 +1,13 @@
 pipeline:
   backend:
-    image: ubuntu
+    image: ${OS_IMAGG}
     commands:
+      - cat /etc/*rel*
       - ls -la
       - pwd
       - export
+
+matrix:
+  OS_IMAGG:
+    - ubuntu
+    - centos
