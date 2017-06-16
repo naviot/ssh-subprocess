@@ -4,12 +4,17 @@ pipeline:
     environment:
       - GOOS=linux
     commands:
+      - git branch
+      - git log
       - ls -la
       - pwd
       - env
       - export
 
+  windows_build:
+    image: naviot/scalarizr-build-${PKG_OS}
+
 matrix:
-  OS_IMAGG:
-    - ubuntu
-    - centos
+  include:
+    - PKG_OS: windows
+      OS_VERSION: last
