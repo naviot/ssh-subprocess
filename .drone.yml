@@ -1,6 +1,6 @@
 pipeline:
   backend:
-    image: ${PKG_OS}
+    image: ubuntu
     environment:
       - GOOS=linux
     commands:
