@@ -1,6 +1,6 @@
 pipeline:
   backend:
-    image: ${OS_IMAGG}
+    image: ${PKG_OS}
     environment:
       - GOOS=linux
     commands:
@@ -11,8 +11,8 @@ pipeline:
       - env
       - export
 
-  windows_build:
-    image: naviot/scalarizr-build-${PKG_OS}
+  # windows_build:
+    # image: naviot/scalarizr-build-${PKG_OS}
 
 matrix:
   include:
