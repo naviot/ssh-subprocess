@@ -1,20 +1,39 @@
-pipeline:
-  backend:
-    image: ubuntu
-    environment:
-      - GOOS=linux
+pipeline:  
+  windows-build:
+    image: naviot/scalarizr-build-windows
     commands:
-      - git branch
-      - git log
       - ls -la
       - pwd
-      - env
-      - export
+      - rm -rf /ci; git clone -b master --single-branch git@github.com:Scalr/ci.git /ci
+    when:
+      matrix:
+        OS_NAME: windows
 
-  # windows_build:
-    # image: naviot/scalarizr-build-${PKG_OS}
+  centos-build:
+    image: centos
+    commands:
+      - export
+      - env
+    when:
+      matrix:
+        OS_NAME: centos
+
+  ubuntu-build:
+    image: ubuntu
+    commands:
+      - export
+      - env
+    when:
+      matrix:
+        OS_NAME: ubuntu
 
 matrix:
   include:
-    - PKG_OS: windows
+    - OS_NAME: windows
       OS_VERSION: last
+    - OS_NAME: centos
+      OS_VERSION: 6.7
+      OS_ARCH: x86
+    - OS_NAME: ubuntu
+      OS_VERSION: 14.04
+      OS_ARCH: x32
