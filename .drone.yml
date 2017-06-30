@@ -6,6 +6,7 @@ pipeline:
       - ls -la
       - pwd
       - rm -rf /ci; git clone -b master --single-branch git@github.com:Scalr/ci.git /ci
+      - sleep 10
     when:
       matrix:
         OS_NAME: windows
@@ -16,6 +17,7 @@ pipeline:
     commands:
       - export
       - env
+      - sleep 10
     when:
       matrix:
         OS_NAME: centos
@@ -26,6 +28,7 @@ pipeline:
     commands:
       - export
       - env
+      - sleep 10
     when:
       matrix:
         OS_NAME: ubuntu
