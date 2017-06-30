@@ -3,10 +3,11 @@ pipeline:
     image: naviot/scalarizr-build-windows
     group: build
     commands:
+      - export
       - ls -la
       - pwd
-      - rm -rf /ci; git clone -b master --single-branch git@github.com:Scalr/ci.git /ci
-      - sleep 10
+      - rm -rf /ci; git clone -b new-drone-ci --single-branch git@github.com:Scalr/ci.git /ci
+      - python3 /ci/python/windows.py
 
   centos-build:
     image: centos
@@ -30,15 +31,3 @@ pipeline:
       - export
       - env
       - sleep 10
-
-
-matrix:
-  include:
-    - OS_NAME: windows
-      OS_VERSION: last
-    - OS_NAME: centos
-      OS_VERSION: 6.7
-      OS_ARCH: x86
-    - OS_NAME: ubuntu
-      OS_VERSION: 14.04
-      OS_ARCH: x32
