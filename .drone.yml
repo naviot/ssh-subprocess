@@ -7,9 +7,6 @@ pipeline:
       - pwd
       - rm -rf /ci; git clone -b master --single-branch git@github.com:Scalr/ci.git /ci
       - sleep 10
-    when:
-      matrix:
-        OS_NAME: windows
 
   centos-build:
     image: centos
@@ -18,9 +15,6 @@ pipeline:
       - export
       - env
       - sleep 10
-    when:
-      matrix:
-        OS_NAME: centos
 
   ubuntu-build:
     image: ubuntu
@@ -29,9 +23,6 @@ pipeline:
       - export
       - env
       - sleep 10
-    when:
-      matrix:
-        OS_NAME: ubuntu
 
   ubuntu-build1:
     image: ubuntu
@@ -39,7 +30,15 @@ pipeline:
       - export
       - env
       - sleep 10
-    when:
-      matrix:
-        OS_NAME: ubuntu
 
+
+matrix:
+  include:
+    - OS_NAME: windows
+      OS_VERSION: last
+    - OS_NAME: centos
+      OS_VERSION: 6.7
+      OS_ARCH: x86
+    - OS_NAME: ubuntu
+      OS_VERSION: 14.04
+      OS_ARCH: x32
