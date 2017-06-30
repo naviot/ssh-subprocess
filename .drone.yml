@@ -1,7 +1,7 @@
 pipeline:  
   windows-build:
-    group: build
     image: naviot/scalarizr-build-windows
+    group: build
     commands:
       - ls -la
       - pwd
@@ -12,8 +12,8 @@ pipeline:
         OS_NAME: windows
 
   centos-build:
-    group: build
     image: centos
+    group: build
     commands:
       - export
       - env
@@ -23,7 +23,17 @@ pipeline:
         OS_NAME: centos
 
   ubuntu-build:
+    image: ubuntu
     group: build
+    commands:
+      - export
+      - env
+      - sleep 10
+    when:
+      matrix:
+        OS_NAME: ubuntu
+
+  ubuntu-build1:
     image: ubuntu
     commands:
       - export
@@ -33,13 +43,3 @@ pipeline:
       matrix:
         OS_NAME: ubuntu
 
-matrix:
-  include:
-    - OS_NAME: windows
-      OS_VERSION: last
-    - OS_NAME: centos
-      OS_VERSION: 6.7
-      OS_ARCH: x86
-    - OS_NAME: ubuntu
-      OS_VERSION: 14.04
-      OS_ARCH: x32
