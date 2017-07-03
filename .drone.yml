@@ -3,7 +3,7 @@ pipeline:
     image: naviot/scalarizr-build-windows
     group: build
     environment:
-      - OMNIBUS_PROJECT = scalarizr
+      - OMNIBUS_PROJECT=scalarizr
     commands:
       - ls -la
       - pwd
