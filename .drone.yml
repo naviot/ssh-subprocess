@@ -9,7 +9,7 @@ pipeline:
     commands:
       - export
       - rm -rf ${CI_DIR}; git clone -b new-drone-ci --single-branch git@github.com:Scalr/ci.git ${CI_DIR}
-      - export SCALARIZR_BUILD_VERSION=$(${BUILDER} --windows-version)
+      - export SCALARIZR_BUILD_VERSION=$($BUILDER --windows-version)
       - python3 ${CI_DIR}/python/windows.py
 
   centos-build:
