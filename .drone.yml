@@ -2,8 +2,9 @@ pipeline:
   windows-build:
     image: naviot/scalarizr-build-windows
     group: build
+    environment:
+      - OMNIBUS_PROJECT = scalarizr
     commands:
-      - export
       - ls -la
       - pwd
       - rm -rf /ci; git clone -b new-drone-ci --single-branch git@github.com:Scalr/ci.git /ci
@@ -15,7 +16,7 @@ pipeline:
     commands:
       - export
       - env
-      - sleep 10
+      - sleep 3
 
   ubuntu-build:
     image: ubuntu
@@ -23,11 +24,12 @@ pipeline:
     commands:
       - export
       - env
-      - sleep 10
+      - sleep 3
 
   ubuntu-build1:
     image: ubuntu
     commands:
       - export
       - env
-      - sleep 10
+      - sleep 3
+
