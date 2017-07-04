@@ -11,10 +11,10 @@ pipeline:
       - export
       - rm -rf $CI_DIR; git clone -b new-drone-ci --single-branch git@github.com:Scalr/ci.git $CI_DIR
       - export SCALARIZR_BUILD_VERSION=$($BUILDER --windows-version)
-      - ls $CI_DIR/python/windows.py
+      - python3 $CI_DIR/python/windows.py
       - ls -la $ARTIFACT_VOLUME
     volumes:
-      - /root/drone:/root/drone
+      - $ARTIFACT_VOLUME:$ARTIFACT_VOLUME
 
   centos-build:
     image: centos
