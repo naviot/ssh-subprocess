@@ -1,0 +1,24 @@
+-e git+git://github.com/coleifer/peewee.git@18db00d2fec90b8a6e6490fd3f80fd6bb060fdd9#egg=peewee
+-e git+git://github.com/Scalr/celery.git@635b2be80a19859905b06217e24176a2ea0f50ba#egg=celery
+-e git+git://github.com/Scalr/python-augeas.git@5b4fe6568eca7866429180d82a7aed58ee824e37#egg=augeas
+-e git+https://github.com/Scalr/libcloud.git@b28422d2c7006d9ca07393aa590b80bd1ea28caa#egg=apache-libcloud
+-e git+https://github.com/Scalr/py-amqp.git@dc87d178a4a1d3095e2557cfd2a6c8d62df91846#egg=amqp
+billiard==3.5.0.2
+certifi
+cryptography==1.5.3
+fysom==2.1.2
+gevent==1.1.2
+jwcrypto==0.4.0
+kombu==4.0.2
+mock==1.3.0
+monotonic==1.3
+psutil==3.4.2
+pymysql==0.7.2
+pytz==2016.10
+PyYAML==3.11
+requests==2.17.3
+schematics==1.1.1
+six==1.10.0
+vine==1.1.3
+# fix csg.in compiling: Could not find a version that matches pyasn1<0.2,==0.2.3,>=0.1.8,>=0.1.9
+pyasn1==0.1.9

@@ -1,0 +1,4 @@
+docker==2.0.0 ; sys_platform != 'win32'
+locustio==0.7.3
+pyzmq==14.7.0
+git+https://github.com/Scalr/pyrabbit.git

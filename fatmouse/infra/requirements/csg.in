@@ -1,0 +1,1 @@
+-e git+https://github.com/Scalr/mitmproxy.git@c1eb7d0c13e3f662e68c8e718121ea136bfa7585#egg=mitmproxy

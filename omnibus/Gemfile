@@ -1,0 +1,4 @@
+source 'https://rubygems.org'
+
+gem 'fpm'
+gem 'omnibus', :git => 'git://github.com/Scalr/omnibus.git', :branch => 'master'

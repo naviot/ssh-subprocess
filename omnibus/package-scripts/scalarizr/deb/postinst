@@ -1,0 +1,281 @@
+#!/bin/bash
+#
+# Perform necessary scalarizr setup steps
+# after package is installed.
+#
+# Scripts order
+# rpm: http://fedoraproject.org/wiki/Packaging:ScriptletSnippets
+# deb: https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html
+
+PROGNAME='scalarizr'
+INSTALL_DIR='/opt/scalarizr'
+ETC_DIR='/etc/scalr'
+
+INIT_ENGINE=$(cat /proc/1/status | grep 'Name:' | awk '{print $2}')
+
+if [ -e /etc/os-release ]; then
+    DIST=$(cat /etc/os-release 2>/dev/null | awk '/^NAME/ {print tolower($0)}')
+else
+    DIST=$(cat /etc/lsb-release 2>/dev/null | awk '/^DISTRIB_ID/ {print tolower($0)}')
+fi
+
+if [[ $DIST =~ "ubuntu" ]]; then
+    DIST='ubuntu'
+    FAMILY='debian'
+elif [[ $DIST =~ "debian" ]]; then
+    DIST='debian'
+    FAMILY='debian'
+else
+    DIST='redhat'
+    FAMILY='redhat'
+fi
+
+
+function error_exit {
+    echo "${PROGNAME}: ${1:-"Unknown Error"}" 1>&2
+    exit 1
+}
+
+function debian_init {
+    if [ "$DIST" = 'debian' ]; then
+        insserv -r scalarizr_update 2>/dev/null || :
+        rm -f /etc/init.d/scalarizr_update
+        insserv -r scalarizr
+        insserv scalarizr
+        insserv scalr-upd-client
+    else
+        update-rc.d -f scalarizr remove || :
+        if test -e /etc/init.d/scalarizr_update; then
+            # We've reverted back scalarizr autostart because
+            # some clients have scalarizr bundled without scalr-upd-client,
+            # and Ubuntu 10.04 init doesn't execute new init scripts,
+            # that was installed during init
+            update-rc.d scalarizr defaults 99 >/dev/null
+        else
+            update-rc.d scalarizr stop 99 0 1 6 .
+        fi
+        rm -f /etc/init.d/scalarizr_update
+        update-rc.d scalarizr_update remove || :
+        update-rc.d scalr-upd-client defaults 98 >/dev/null
+    fi
+}
+
+function redhat_init {
+    for service in scalarizr scalr-upd-client; do
+        /sbin/chkconfig --del $service || :
+        /sbin/chkconfig --add $service
+        chmod +x /etc/init.d/$service
+    done
+}
+
+function safe_restart {
+    # TODO: move this into init scripts and call '/etc/init.d/scalarizr restart' from here
+    if [ $INIT_ENGINE = "systemd" ]; then
+        systemctl stop scalarizr.service
+    else
+        /etc/init.d/scalarizr stop
+    fi
+
+    # [SCALARIZR-1941]
+    update_status=$($INSTALL_DIR/embedded/bin/python -c\
+        "import json;print(json.load(open('$ETC_DIR/private.d/update.status'))['state'])" 2>/dev/null)
+    if [[ $? -eq 0 && "$update_status" != in-progress* ]]; then
+        if [ $INIT_ENGINE = "systemd" ]; then
+            systemctl stop scalr-upd-client.service
+        else
+            /etc/init.d/scalr-upd-client stop
+        fi
+    fi
+
+    sleep 1
+    zomby_pids=$(ps aux | grep 'bin/scalarizr' | awk '{ print $2 }')
+    if [ "$zomby_pids" ]; then
+        for zomby_pid in $zomby_pids; do
+            kill -9 $zomby_pid 2>/dev/null
+        done
+    fi
+
+    if [ -f "/tmp/scalarizr.status" ]; then
+        status=$(cat /tmp/scalarizr.status)
+        rm -f "/tmp/scalarizr.status"
+        if [ "0" = "$status" ]; then
+            if [ $INIT_ENGINE = "systemd" ]; then
+                systemctl start scalarizr.service
+            else
+                /etc/init.d/scalarizr start || exit $?
+            fi
+        fi
+    else
+        if [ -f "$ETC_DIR/private.d/.state" ]; then
+            if [ $INIT_ENGINE = "systemd" ] ; then
+                systemctl start scalarizr.service
+            else
+                /etc/init.d/scalarizr start || exit $?
+            fi
+        fi
+    fi
+}
+
+function link_to {
+    test -e $1 && unlink $1
+    ln -s $2 $1
+}
+
+# sync configuration files
+test -e $ETC_DIR || mkdir -p $ETC_DIR
+$INSTALL_DIR/embedded/bin/rsync -aq $ETC_DIR/ $INSTALL_DIR/etc
+$INSTALL_DIR/embedded/bin/rsync -avq $INSTALL_DIR/etc/ $ETC_DIR
+find $INSTALL_DIR/etc -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
+
+# update symlinks
+for name in $(ls $INSTALL_DIR/bin); do
+    link_to /usr/bin/$name "$INSTALL_DIR/bin/$name"
+done
+
+
+pushd . >/dev/null
+cd $ETC_DIR/public.d
+[ ! -f percona.ini ] && ln -s mysql2.ini percona.ini
+[ ! -f mariadb.ini ] && ln -s mysql2.ini mariadb.ini
+[ ! -f idcf.ini ] && ln -s cloudstack.ini idcf.ini
+[ ! -f ucloud.ini ] && ln -s cloudstack.ini ucloud.ini
+popd >/dev/null
+find $ETC_DIR -type d -exec chmod 755 {} \;
+test -e $ETC_DIR/private.d/keys && find $ETC_DIR/private.d/keys -type f -exec chmod 600 {} \;
+
+# fix: adding nobootwait for storage volumes on Ubuntu
+if [ "$DIST" = 'ubuntu' ]; then
+    sed -i 's/comment=scalr,nofail/nobootwait,nofail,comment=scalr/g' /etc/fstab
+fi
+
+# fix: and remove nobootwait for storage volumes on Debian/RedHat
+if [ "$DIST" = 'redhat' ] || [ "$DIST" = 'debian' ]; then
+    sed -i 's/\(,nobootwait\)//g' /etc/fstab
+    sed -i 's/\(nobootwait,\)//g' /etc/fstab
+    sed -i 's/\(nobootwait\)//g' /etc/fstab
+fi
+
+# fix: backward compatibility with szradm was previously in /usr/local/bin
+rm -f /usr/local/bin/szradm
+if [ ! -d /usr/local/bin ]; then
+    mkdir -p /usr/local/bin
+    chmod 755 /usr/local/bin
+fi
+ln -s /usr/bin/szradm /usr/local/bin/szradm
+
+# database migrations
+if [ -e $ETC_DIR/private.d/db.sqlite ]; then
+    /opt/scalarizr/embedded/bin/python <<EOF
+import sqlite3
+with sqlite3.Connection('$ETC_DIR/private.d/db.sqlite') as conn:
+    cur = conn.cursor()
+
+    # add column 'format' to 'p2p_message'
+    cur.execute('pragma table_info(p2p_message)')
+    if not any(row for row in cur.fetchall() if row[1] == 'format'):
+        cur.execute("alter table p2p_message add column format TEXT default 'xml'")
+
+    cur.execute('pragma table_info(tasks)')
+    tasks_info = cur.fetchall()
+    if not tasks_info:
+        # create table 'tasks'
+        cur.execute(
+            """create table tasks (
+                "task_id" TEXT PRIMARY KEY,
+                "name" TEXT,
+                "args" TEXT,
+                "kwds" TEXT,
+                "state" TEXT,
+                "result" TEXT,
+                "traceback" TEXT,
+                "start_date" TEXT,
+                "end_date" TEXT,
+                "worker_id" TEXT,
+                "soft_timeout" FLOAT,
+                "hard_timeout" FLOAT,
+                "callbacks" TEXT,
+                "meta" TEXT)
+            """)
+    elif not any(row for row in tasks_info if row[1] == 'callbacks'):
+        # add column 'callbacks' and 'meta' columns to 'tasks'
+        cur.execute("alter table tasks add column callbacks TEXT")
+        cur.execute("alter table tasks add column meta TEXT")
+
+    conn.commit()
+EOF
+fi
+
+if [ -e $ETC_DIR/private.d/update.status ] && [ -e $ETC_DIR/private.d/keys/default ]; then
+    /opt/scalarizr/embedded/bin/python <<EOF
+import json
+import os
+from common.utils import sysutil
+from scalarizr.queryenv import QueryEnvService
+
+with open('$ETC_DIR/private.d/update.status') as fp:
+    us = json.load(fp)
+
+creds = (us['queryenv_url'],
+         us['server_id'],
+        '$ETC_DIR/private.d/keys/default')
+queryenv = QueryEnvService(*creds)
+queryenv = QueryEnvService(*creds, api_version=queryenv.get_latest_version())
+
+base = queryenv.list_farm_role_params(us['farm_role_id']).get('params', {}).get('base', {})
+labs_toggles = {k: base[k] for k in base if k.startswith('scalr_labs')}
+for k, v in labs_toggles.items():
+    flag_file = os.path.join('$ETC_DIR/private.d', k)
+    if v:
+        print('Enabling feature: {}'.format(k))
+        sysutil.touch(flag_file)
+    else:
+        sysutil.rm_rf(flag_file)
+
+EOF
+fi
+
+# Set updated flag.
+touch "$ETC_DIR/private.d/.update"
+
+# Detect installed Scalarizr`s systemd units
+SYSTEMD_IS_UPGRADE=false
+test -f /lib/systemd/system/scalarizr.service && SYSTEMD_IS_UPGRADE=true
+test -f /lib/systemd/system/scalarizr-shutdown.service && SYSTEMD_IS_UPGRADE=true
+test -f /lib/systemd/system/scalr-upd-client.service && SYSTEMD_IS_UPGRADE=true
+
+# Detect installed Scalarizr`s sysvinit scripts
+SYSTEMD_IS_INSTALL=true
+for name in $(ls $INSTALL_DIR/init/$FAMILY); do
+    test -f /etc/init.d/$name && SYSTEMD_IS_INSTALL=false
+done
+
+if ( [ $INIT_ENGINE = "systemd" ] && ( $SYSTEMD_IS_UPGRADE || $SYSTEMD_IS_INSTALL ) ); then
+    cp -f "$INSTALL_DIR/init/systemd/scalarizr.service" /lib/systemd/system/scalarizr.service
+    cp -f "$INSTALL_DIR/init/systemd/scalarizr-shutdown.service" /lib/systemd/system/scalarizr-shutdown.service
+    cp -f "$INSTALL_DIR/init/systemd/scalr-upd-client.service" /lib/systemd/system/scalr-upd-client.service
+    systemctl daemon-reload
+    systemctl disable scalarizr.service
+    systemctl enable scalr-upd-client.service
+    systemctl enable scalarizr-shutdown.service
+else
+    for name in $(ls $INSTALL_DIR/init/$FAMILY); do
+        # fix for cp: '/opt/scalarizr/init/debian/XXX' and '/etc/init.d/XXX' are the same file
+        test -L /etc/init.d/$name && rm -f /etc/init.d/$name
+        # do copy scripts, cause systemd doesn't work with sysvinit scripts when they are symlinks
+        cp "$INSTALL_DIR/init/$FAMILY/$name" /etc/init.d/$name
+        chmod +x /etc/init.d/$name
+    done
+
+    # update init scripts symlinks
+    if [ "$DIST" = 'redhat' ]; then
+        redhat_init
+    else
+        debian_init
+    fi
+fi
+
+safe_restart
+
+echo "Thank you for installing ${PROGNAME}!"
+
+exit 0
