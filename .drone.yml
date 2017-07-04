@@ -14,7 +14,7 @@ pipeline:
       - python3 $CI_DIR/python/windows.py
       - ls -la $ARTIFACT_VOLUME
     volumes:
-      - ${ARTIFACT_VOLUME}:${ARTIFACT_VOLUME}
+      - /root/drone:/root/drone
 
   centos-build:
     image: centos
