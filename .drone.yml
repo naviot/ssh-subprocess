@@ -6,15 +6,14 @@ pipeline:
       - OMNIBUS_PROJECT=scalarizr
       - CI_DIR=/ci
       - BUILDER=python3 /ci/python/builder.py
-      - ARTIFACT_VOLUME=/root/drone
     commands:
       - export
+      - gcloud auth activate-service-account --key-file=/gcloud-account.json
       - rm -rf $CI_DIR; git clone -b new-drone-ci --single-branch git@github.com:Scalr/ci.git $CI_DIR
       - export SCALARIZR_BUILD_VERSION=$($BUILDER --windows-version)
       - python3 $CI_DIR/python/windows.py
-      - ls -la $ARTIFACT_VOLUME
     volumes:
-      - /root/drone:/root/drone
+      - /gcloud-account.json:/gcloud-account.json
 
   centos-build:
     image: centos
