@@ -18,7 +18,7 @@ pipeline:
     commands:
       - export
       - env
-      - sleep 3
+      - sleep 5
 
   ubuntu-build:
     image: ubuntu
@@ -26,14 +26,14 @@ pipeline:
     commands:
       - export
       - env
-      - sleep 3
+      - sleep 5
 
   ubuntu-build1:
     image: ubuntu
     commands:
       - export
       - env
-      - sleep 3
+      - sleep 5
 
 matrix:
   GO_VERSION:
