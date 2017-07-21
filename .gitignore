@@ -67,5 +67,6 @@ Session.vim
 !.gitattributes
 *~
 !.drone.yml
+!.drone-dev.yml
 
 fabfile_local.py
